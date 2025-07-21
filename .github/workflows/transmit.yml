@@ -1,0 +1,64 @@
+#Do Not Touch the Below Code!
+
+name: Send code submission
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  submit-code:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 
+
+      - name: Create encoded directory
+        run: mkdir -p encoded
+
+      - name: Get changed file
+        id: detect_file
+        run: |
+          FILE=$(git diff --name-only HEAD~1 HEAD | grep -E '\.py$|\.cpp$|\.java$ |\.ipynb$' | head -n 1 || true)
+
+          if [ -z "$FILE" ]; then
+            echo "No valid code file found in recent commit."
+            echo "skip=true" >> $GITHUB_ENV
+            exit 0
+          fi
+
+          echo "$FILE" > encoded/filename.txt
+          echo "file=$FILE" >> $GITHUB_ENV
+          echo "Found changed file: $FILE"
+
+      - name: Encode the file
+        if: env.skip != 'true'
+        run: |
+          FILENAME=$(cat encoded/filename.txt)
+          base64 "$FILENAME" > encoded/code.txt
+          echo "File encoded"
+
+      - name: Send submission to backend
+        if: env.skip != 'true'
+        run: |
+          CODE=$(cat encoded/code.txt)
+          FILENAME=$(cat encoded/filename.txt)
+
+          JSON=$(jq -n \
+            --arg name "${{ github.actor }}" \
+            --arg commitCount "${{ github.event.commits && github.event.commits.length || 1 }}" \
+            --arg timestamp "$(TZ='Asia/Kolkata' date +'%d/%m/%Y %H:%M')" \
+            --arg filename "$FILENAME" \
+            --arg content_b64 "$CODE" \
+            '{name: $name, commitCount: $commitCount, timestamp: $timestamp, files: [{ filename: $filename, content_b64: $content_b64 }] }')
+
+          echo "Sending JSON Payload:"
+          echo "$JSON" | jq
+
+          curl -X POST https://github-tool-project.onrender.com/webhook \
+            -H "Content-Type: application/json" \
+            -d "$JSON"
