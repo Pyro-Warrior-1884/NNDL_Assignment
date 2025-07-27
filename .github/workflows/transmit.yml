@@ -46,14 +46,14 @@ jobs:
         if: env.skip != 'true'
         run: |
           FILENAME=$(cat encoded/filename.txt)
-          CODE=$(jq -Rs . < "$FILENAME")
+          CODE=$(cat "$FILENAME")
 
           JSON=$(jq -n \
             --arg name "${{ github.actor }}" \
             --arg commitCount "${{ github.event.commits && github.event.commits.length || 1 }}" \
             --arg timestamp "$(TZ='Asia/Kolkata' date +'%d/%m/%Y %H:%M')" \
             --arg filename "$FILENAME" \
-            --argjson content "$CODE" \
+            --arg content "$CODE" \
             '{name: $name, commitCount: $commitCount, timestamp: $timestamp, filename: $filename, content: $content }')
 
           echo "Sending JSON Payload:"
