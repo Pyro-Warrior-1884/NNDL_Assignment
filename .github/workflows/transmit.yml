@@ -53,7 +53,7 @@ jobs:
             --arg commitCount "${{ github.event.commits && github.event.commits.length || 1 }}" \
             --arg timestamp "$(TZ='Asia/Kolkata' date +'%d/%m/%Y %H:%M')" \
             --arg filename "$FILENAME" \
-            --arg content "$CODE" \
+            --argjson content "$CODE" \
             '{name: $name, commitCount: $commitCount, timestamp: $timestamp, files: [{ filename: $filename, content: $content }] }')
 
           echo "Sending JSON Payload:"
