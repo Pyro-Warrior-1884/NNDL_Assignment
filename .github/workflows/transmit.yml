@@ -39,26 +39,26 @@ jobs:
         if: env.skip != 'true'
         run: |
           FILENAME=$(cat encoded/filename.txt)
-          base64 "$FILENAME" > encoded/code.txt
+          cat "$FILENAME" > encoded/code.txt
           echo "File encoded"
 
       - name: Send submission to backend
         if: env.skip != 'true'
         run: |
-          CODE=$(cat encoded/code.txt)
           FILENAME=$(cat encoded/filename.txt)
-
+          CODE=$(jq -Rs . < "$FILENAME")  # safely escape multiline code
+      
           JSON=$(jq -n \
             --arg name "${{ github.actor }}" \
             --arg commitCount "${{ github.event.commits && github.event.commits.length || 1 }}" \
             --arg timestamp "$(TZ='Asia/Kolkata' date +'%d/%m/%Y %H:%M')" \
             --arg filename "$FILENAME" \
-            --arg content_b64 "$CODE" \
-            '{name: $name, commitCount: $commitCount, timestamp: $timestamp, files: [{ filename: $filename, content_b64: $content_b64 }] }')
-
+            --argjson content "$CODE" \
+            '{name: $name, commitCount: $commitCount, timestamp: $timestamp, files: [{ filename: $filename, content: $content }] }')
+      
           echo "Sending JSON Payload:"
           echo "$JSON" | jq
-
+      
           curl -X POST https://github-tool-project.onrender.com/webhook \
             -H "Content-Type: application/json" \
             -d "$JSON"
