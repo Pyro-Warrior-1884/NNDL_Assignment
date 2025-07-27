@@ -54,7 +54,7 @@ jobs:
             --arg timestamp "$(TZ='Asia/Kolkata' date +'%d/%m/%Y %H:%M')" \
             --arg filename "$FILENAME" \
             --argjson content "$CODE" \
-            '{name: $name, commitCount: $commitCount, timestamp: $timestamp, files: [{ filename: $filename, content: $content }] }')
+            '{name: $name, commitCount: $commitCount, timestamp: $timestamp, filename: $filename, content: $content }')
 
           echo "Sending JSON Payload:"
           echo "$JSON" | jq
