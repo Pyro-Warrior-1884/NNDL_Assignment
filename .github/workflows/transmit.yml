@@ -1,4 +1,4 @@
-#Do Not Touch the Below Code!
+# Do Not Touch the Below Code!
 
 name: Send code submission
 
@@ -23,7 +23,7 @@ jobs:
       - name: Get changed file
         id: detect_file
         run: |
-          FILE=$(git diff --name-only HEAD~1 HEAD | grep -E '\.py$|\.cpp$|\.java$ |\.ipynb$' | head -n 1 || true)
+          FILE=$(git diff --name-only HEAD~1 HEAD | grep -E '\.py$|\.cpp$|\.java$|\.ipynb$' | head -n 1 || true)
 
           if [ -z "$FILE" ]; then
             echo "No valid code file found in recent commit."
@@ -35,26 +35,26 @@ jobs:
           echo "file=$FILE" >> $GITHUB_ENV
           echo "Found changed file: $FILE"
 
-      - name: Encode the file
+      - name: Save file content (no encoding)
         if: env.skip != 'true'
         run: |
           FILENAME=$(cat encoded/filename.txt)
-          base64 "$FILENAME" > encoded/code.txt
-          echo "File encoded"
+          cat "$FILENAME" > encoded/code.txt
+          echo "File content saved without encoding."
 
       - name: Send submission to backend
         if: env.skip != 'true'
         run: |
-          CODE=$(cat encoded/code.txt)
           FILENAME=$(cat encoded/filename.txt)
+          CODE=$(jq -Rs . < "$FILENAME")
 
           JSON=$(jq -n \
             --arg name "${{ github.actor }}" \
             --arg commitCount "${{ github.event.commits && github.event.commits.length || 1 }}" \
             --arg timestamp "$(TZ='Asia/Kolkata' date +'%d/%m/%Y %H:%M')" \
             --arg filename "$FILENAME" \
-            --arg content_b64 "$CODE" \
-            '{name: $name, commitCount: $commitCount, timestamp: $timestamp, files: [{ filename: $filename, content_b64: $content_b64 }] }')
+            --argjson content "$CODE" \
+            '{name: $name, commitCount: $commitCount, timestamp: $timestamp, files: [{ filename: $filename, content: $content }] }')
 
           echo "Sending JSON Payload:"
           echo "$JSON" | jq
